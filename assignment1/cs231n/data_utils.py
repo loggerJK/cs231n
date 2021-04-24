@@ -5,6 +5,7 @@ import numpy as np
 import os
 from matplotlib.pyplot import imread
 import platform
+from sys import path
 
 
 def load_pickle(f):
