@@ -77,8 +77,6 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # Compute the loss
     num_classes = W.shape[1]
-    import pdb
-
     num_train = X.shape[0]
     scores = X.dot(W)
     correct_class_scores = scores[np.arange(num_train), y]
