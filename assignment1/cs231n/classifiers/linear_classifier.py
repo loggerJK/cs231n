@@ -37,7 +37,6 @@ class LinearClassifier(object):
     Outputs:
     A list containing the value of the loss function at each training iteration.
     """
-        import pdb
 
         num_train, dim = X.shape
         batch_size = int(num_train / num_iters)
