@@ -102,10 +102,11 @@ class TwoLayerNet(object):
         # softmax
         exp_matrix = np.exp(scores)
         exp_sum = np.sum(exp_matrix, axis=1, keepdims=True)
-        s = softmax = np.divide(exp_matrix, exp_sum)  # (N, C)
+        softmax = np.divide(exp_matrix, exp_sum)  # (N, C)
 
         loss = -np.sum(np.log(softmax[np.arange(num_train), y]))
         loss /= num_train
+        loss += reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
 
         #############################################################################
         # TODO: Finish the forward pass, and compute the loss. This should include  #
@@ -123,18 +124,20 @@ class TwoLayerNet(object):
 
         dfc_2 = softmax
         dfc_2[np.arange(num_train), y] = dfc_2[np.arange(num_train), y] - 1
+        dfc_2 /= N
         dW2 = relu.T.dot(dfc_2)
-        grads["W2"] = dW2 + 2 * reg * W2
 
         db2 = np.sum(dfc_2, axis=0, keepdims=True)
-        grads["b2"] = db2
 
         dfc_1 = dfc_2.dot(W2.T)
         dfc_1[relu == 0] = 0
         dW1 = X.T.dot(dfc_1)
-        grads["W1"] = dW1 + reg * W1
 
         db1 = np.sum(dfc_1, axis=0, keepdims=True)
+
+        grads["W2"] = dW2 + 2 * reg * W2
+        grads["b2"] = db2
+        grads["W1"] = dW1 + reg * W1
         grads["b1"] = db1
         #############################################################################
         # TODO: Compute the backward pass, computing the derivatives of the weights #
