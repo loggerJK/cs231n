@@ -510,6 +510,7 @@ class TwoLayerNet(object):
                 # Decay learning rate
                 learning_rate *= learning_rate_decay
 
+        # 딕셔너리를 리턴한다
         return {
             "loss_history": loss_history,
             "train_acc_history": train_acc_history,

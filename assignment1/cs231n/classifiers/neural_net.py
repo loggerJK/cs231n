@@ -127,13 +127,15 @@ class TwoLayerNet(object):
         dfc_2 /= N
         dW2 = relu.T.dot(dfc_2)
 
-        db2 = np.sum(dfc_2, axis=0, keepdims=True)
+        db2 = np.sum(dfc_2, axis=0, keepdims=True)  # (C,1)
+        db2 = db2.reshape(-1)  # (C,)
 
         dfc_1 = dfc_2.dot(W2.T)
         dfc_1[relu == 0] = 0
         dW1 = X.T.dot(dfc_1)
 
         db1 = np.sum(dfc_1, axis=0, keepdims=True)
+        db1 = db1.reshape(-1)
 
         grads["W2"] = dW2 + 2 * reg * W2
         grads["b2"] = db2
@@ -177,7 +179,7 @@ class TwoLayerNet(object):
     - learning_rate_decay: Scalar giving factor used to decay the learning rate
       after each epoch.
     - reg: Scalar giving regularization strength.
-    - num_iters: Number of steps to take when optimizing.
+    - num_iters: Number of steps to take when optimizing. batch_size단위 iteration 횟수
     - batch_size: Number of training examples to use per step.
     - verbose: boolean; if true print progress during optimization.
     """
@@ -190,8 +192,10 @@ class TwoLayerNet(object):
         val_acc_history = []
 
         for it in xrange(num_iters):
-            X_batch = None
-            y_batch = None
+            # 임의로 미니배치를 생성한다
+            mask = np.random.randint(0, num_train, size=batch_size)
+            X_batch = X[mask]
+            y_batch = y[mask]
 
             #########################################################################
             # TODO: Create a random minibatch of training data and labels, storing  #
@@ -205,6 +209,12 @@ class TwoLayerNet(object):
             # Compute loss and gradients using the current minibatch
             loss, grads = self.loss(X_batch, y=y_batch, reg=reg)
             loss_history.append(loss)
+
+            # gradient update
+            self.params["W1"] -= learning_rate * grads["W1"]
+            self.params["W2"] -= learning_rate * grads["W2"]
+            self.params["b1"] -= learning_rate * grads["b1"]
+            self.params["b2"] -= learning_rate * grads["b2"]
 
             #########################################################################
             # TODO: Use the gradients in the grads dictionary to update the         #
@@ -242,6 +252,8 @@ class TwoLayerNet(object):
     Use the trained weights of this two-layer network to predict labels for
     data points. For each data point we predict scores for each of the C
     classes, and assign each data point to the class with the highest score.
+    1. 각각의 C개의 클래스에 대해 scores를 predict
+    2. 각각의 data point에 대해서, 가장 높은 score에 할당한다
 
     Inputs:
     - X: A numpy array of shape (N, D) giving N D-dimensional data points to
@@ -253,6 +265,23 @@ class TwoLayerNet(object):
       to have class c, where 0 <= c < C.
     """
         y_pred = None
+        # Unpack variables from the params dictionary
+        W1, b1 = self.params["W1"], self.params["b1"]
+        W2, b2 = self.params["W2"], self.params["b2"]
+        N, D = X.shape
+
+        # 순전파, forward pass
+        fc_1 = X.dot(W1) + b1  # (N, H)
+        relu = np.maximum(0, fc_1)
+        fc_2 = relu.dot(W2) + b2
+        # softmax
+        scores = fc_2 - np.max(fc_2)
+        exp_matrix = np.exp(scores)
+        exp_sum = np.sum(exp_matrix, axis=1, keepdims=True)
+        softmax = np.divide(exp_matrix, exp_sum)  # (N, C)
+
+        y_pred = np.argmax(softmax, axis=1)  # (N,1)
+        y_pred = y_pred.reshape(-1)  # (N,)
 
         ###########################################################################
         # TODO: Implement this function; it should be VERY simple!                #
