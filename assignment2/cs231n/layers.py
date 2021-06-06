@@ -13,7 +13,7 @@ def affine_forward(x, w, b):
 
     Inputs:
     - x: A numpy array containing input data, of shape (N, d_1, ..., d_k)
-    - w: A numpy array of weights, of shape (D, M)
+    - w: A numpy array of weights, of shape (D, M) D = d_1 * ... * d_k)
     - b: A numpy array of biases, of shape (M,)
 
     Returns a tuple of:
@@ -21,6 +21,9 @@ def affine_forward(x, w, b):
     - cache: (x, w, b)
     """
     out = None
+    x_dim = x.shape  # tulple, (N, d_1, ..., d_k)
+    x_reshaped = np.reshape(x, (x_dim[0], -1))  # (N, D), D = d_1 + ... + d_k
+    out = np.dot(x_reshaped, w) + b
     ###########################################################################
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
@@ -50,6 +53,15 @@ def affine_backward(dout, cache):
     """
     x, w, b = cache
     dx, dw, db = None, None, None
+    x_dim = x.shape
+    x_reshaped = np.reshape(x, (x_dim[0], -1))  # (N,D)
+
+    # out = xw + b
+    dw = np.dot(x_reshaped.T, dout)
+    dx = np.dot(dout, w.T)
+    dx = np.reshape(dx, x_dim)  # (N, d_1, ... , d_k)
+    db = np.sum(dout, axis=0)
+
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
@@ -72,6 +84,7 @@ def relu_forward(x):
     - cache: x
     """
     out = None
+    out = np.maximum(0, x)
     ###########################################################################
     # TODO: Implement the ReLU forward pass.                                  #
     ###########################################################################
@@ -95,6 +108,7 @@ def relu_backward(dout, cache):
     - dx: Gradient with respect to x
     """
     dx, x = None, cache
+    dx = np.where(x > 0, dout, 0)
     ###########################################################################
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
@@ -143,16 +157,16 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     - out: of shape (N, D)
     - cache: A tuple of values needed in the backward pass
     """
-    mode = bn_param['mode']
-    eps = bn_param.get('eps', 1e-5)
-    momentum = bn_param.get('momentum', 0.9)
+    mode = bn_param["mode"]
+    eps = bn_param.get("eps", 1e-5)
+    momentum = bn_param.get("momentum", 0.9)
 
     N, D = x.shape
-    running_mean = bn_param.get('running_mean', np.zeros(D, dtype=x.dtype))
-    running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
+    running_mean = bn_param.get("running_mean", np.zeros(D, dtype=x.dtype))
+    running_var = bn_param.get("running_var", np.zeros(D, dtype=x.dtype))
 
     out, cache = None, None
-    if mode == 'train':
+    if mode == "train":
         #######################################################################
         # TODO: Implement the training-time forward pass for batch norm.      #
         # Use minibatch statistics to compute the mean and variance, use      #
@@ -172,7 +186,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
-    elif mode == 'test':
+    elif mode == "test":
         #######################################################################
         # TODO: Implement the test-time forward pass for batch normalization. #
         # Use the running mean and variance to normalize the incoming data,   #
@@ -187,8 +201,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
 
     # Store the updated running means back into bn_param
-    bn_param['running_mean'] = running_mean
-    bn_param['running_var'] = running_var
+    bn_param["running_mean"] = running_mean
+    bn_param["running_var"] = running_var
 
     return out, cache
 
@@ -272,14 +286,14 @@ def dropout_forward(x, dropout_param):
     - cache: tuple (dropout_param, mask). In training mode, mask is the dropout
       mask that was used to multiply the input; in test mode, mask is None.
     """
-    p, mode = dropout_param['p'], dropout_param['mode']
-    if 'seed' in dropout_param:
-        np.random.seed(dropout_param['seed'])
+    p, mode = dropout_param["p"], dropout_param["mode"]
+    if "seed" in dropout_param:
+        np.random.seed(dropout_param["seed"])
 
     mask = None
     out = None
 
-    if mode == 'train':
+    if mode == "train":
         #######################################################################
         # TODO: Implement training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                        #
@@ -288,7 +302,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
-    elif mode == 'test':
+    elif mode == "test":
         #######################################################################
         # TODO: Implement the test phase forward pass for inverted dropout.   #
         #######################################################################
@@ -312,10 +326,10 @@ def dropout_backward(dout, cache):
     - cache: (dropout_param, mask) from dropout_forward.
     """
     dropout_param, mask = cache
-    mode = dropout_param['mode']
+    mode = dropout_param["mode"]
 
     dx = None
-    if mode == 'train':
+    if mode == "train":
         #######################################################################
         # TODO: Implement training phase backward pass for inverted dropout   #
         #######################################################################
@@ -323,7 +337,7 @@ def dropout_backward(dout, cache):
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
-    elif mode == 'test':
+    elif mode == "test":
         dx = dout
     return dx
 
