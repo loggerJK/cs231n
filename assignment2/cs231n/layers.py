@@ -1,5 +1,6 @@
 from builtins import range
 import numpy as np
+from numpy.core.numeric import _mode_from_name
 
 
 def affine_forward(x, w, b):
@@ -182,7 +183,20 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        pass
+        sample_mean = np.mean(x, axis=0)
+        sample_var = np.var(x, axis=0)
+
+        # Normalization
+        out = (x-sample_mean) / (np.sqrt(sample_var) + eps)
+        out = gamma * out + beta
+        cache = (x, gamma, beta, eps)
+
+        # gamma and beta is learned parameter during training
+
+        # update running mean & running variance
+        running_mean = momentum * running_mean + (1-momentum) * sample_mean
+        running_var = momentum * running_var + (1-momentum) * sample_var
+
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -193,7 +207,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        out = (x-running_mean) / (np.sqrt(running_var) + eps)
+        out = gamma * out + beta
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -224,12 +239,51 @@ def batchnorm_backward(dout, cache):
     - dgamma: Gradient with respect to scale parameter gamma, of shape (D,)
     - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
     """
-    dx, dgamma, dbeta = None, None, None
+
+    dx, dgamma, dbeta, = None, None, None     # 모두 L = Loss에 대한 미분값
     ###########################################################################
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    pass
+    x, gamma, beta, eps = cache     # load cached data
+
+    sample_mean = np.mean(x, axis=0)
+    sample_var = np.var(x, axis=0)
+
+    dgamma = dout * ((x - sample_mean) / (np.sqrt(sample_var) + eps))
+    dgamma = np.sum(dgamma, axis=0)
+    dbeta = np.sum(dout, axis=0)
+
+    N = x.shape[0]
+    dx = ((1-1/N) - (x-sample_mean)**2 / N / ((np.sqrt(sample_var) + eps) ** (1.5))
+          ) * gamma / (np.sqrt(sample_var + eps))
+    dx = dout * dx
+
+    # 다시 짜볼까?
+    dx1 = (1 - 1/N)
+    dx2 = - (x - sample_mean) ** 2 / N / ((np.sqrt(sample_var) + eps) ** (1.5))
+    dx = dout * gamma / (np.sqrt(sample_var) + eps) * (dx1 + dx2)
+
+    # 다음은 블로그에서 베껴온 코드입니다 #
+    dx1_ = dout * gamma
+
+    dxhat = dout * gamma
+
+    dx1 = dxhat / np.sqrt(sample_var + eps)
+
+    dvar = np.sum(dxhat * (-0.5) * (x-sample_mean) *
+                  (sample_var + eps) ** (-1.5), axis=0)
+    dx2 = dvar * 2 * (x-sample_mean) / N
+
+    dmu = np.sum(dxhat / (-np.sqrt(sample_var + eps)), axis=0)
+    dx3 = dmu / N
+
+    dx = dx1 + dx2 + dx3
+
+    # 코드 테스트
+    temp = np.sum(dout * (-(1/N) * gamma / np.sqrt(sample_var)), axis=0)
+    # print(dx3)
+    # print(temp)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################

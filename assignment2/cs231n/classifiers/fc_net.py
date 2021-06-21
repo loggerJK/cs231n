@@ -205,7 +205,7 @@ class FullyConnectedNet(object):
         self.dtype = dtype
         self.params = {}
 
-# weight and bias initialization
+        # weight and bias initialization
         for i in range(1, self.num_layers):  # 1 , L-1
             if i == 1:
                 W = np.random.normal(loc=0, scale=weight_scale,
@@ -214,6 +214,10 @@ class FullyConnectedNet(object):
                 W = np.random.normal(loc=0, scale=weight_scale, size=(
                     hidden_dims[i-2], hidden_dims[i-1]))
             b = np.zeros(shape=hidden_dims[i-1])
+            # for batch norm
+            if self.use_batchnorm:
+                self.params['gamma' + str(i)] = np.float64(1)
+                self.params['beta' + str(i)] = np.float64(0)
             self.params['W' + str(i)] = W
             self.params['b' + str(i)] = b
 
@@ -279,24 +283,50 @@ class FullyConnectedNet(object):
             for bn_param in self.bn_params:
                 bn_param["mode"] = mode
 
+        '''
+        loss 과정에서 활용할 리스트들
+        [i] : i번째 layer의 변수들
+        '''
         fc = []
         relu = []
+        bn = []
+        cache_bn = []
         cache_fc = []
         cache_relu = []
         fc.append(0)
         relu.append(X)
+        cache_bn.append(0)
         cache_fc.append(0)
-        cache_relu.append(0)                       # 맨 처음 trian data X를 집어넣어준다
+        cache_relu.append(0)
+        # 맨 처음 trian data X를 집어넣어준다
         # 0으로 모든 리스트를 초기화해준다
+        # 이러한 작업을 해주는 이유 : 인덱스를 1부터 L-1까지 활용하기 위함
 
+        '''
+        fc_i : i번째 layer의 output
+        cache_fc_i : i번째 layer의 input
+        '''
         for i in range(1, self.num_layers):  # 1부터 L-1까지
+            # affine
             fc_i, cache_fc_i = affine_forward(
                 relu[i-1], self.params['W' + str(i)], self.params['b' + str(i)])
             fc.append(fc_i)
             cache_fc.append(cache_fc_i)
-            relu_i, cache_relu_i = relu_forward(fc[i])
-            relu.append(relu_i)
-            cache_relu.append(cache_relu_i)
+            if self.use_batchnorm:
+                # batchnorm
+                bn_i, cache_bn_i = batchnorm_forward(fc_i, gamma=self.params['gamma'+str(
+                    i)], beta=self.params['beta' + str(i)], bn_param=self.bn_params[i-1])
+                bn.append(bn_i)
+                cache_bn.append(cache_bn_i)
+                # relu
+                relu_i, cache_relu_i = relu_forward(bn_i)
+                relu.append(relu_i)
+                cache_relu.append(cache_relu_i)
+            else:
+                # relu
+                relu_i, cache_relu_i = relu_forward(fc[i])
+                relu.append(relu_i)
+                cache_relu.append(cache_relu_i)
 
         # 마지막 L번째 layer : affine & softmax
         fc_L, cache_fc_L = affine_forward(
@@ -331,20 +361,35 @@ class FullyConnectedNet(object):
         loss, grads = 0.0,  {}
         loss, d_scores = softmax_loss(scores, y)
 
-        dreluL, dWL, dbL = affine_backward(
-            d_scores, cache_fc[self.num_layers])
-
         dfc = []
         drelu = []
+        dbatch = []
+
         # 맨 마지막 Layer
+        drelu_L, dWL, dbL = affine_backward(
+            d_scores, cache_fc[self.num_layers])
         dfc.append(d_scores)
-        drelu.append(dreluL)
+        drelu.append(drelu_L)
         grads['W' + str(self.num_layers)] = dWL
         grads['b' + str(self.num_layers)] = dbL
 
         for i in range(self.num_layers-1, 0, -1):  # N-1, 1
+            # relu backward
             d_fc = relu_backward(drelu[-1], cache_relu[i])
-            dfc.append(d_fc)
+            # batch normalization
+            if self.use_batchnorm:
+                # vriable name = d_fc이지만 사실은 d_batch
+                dbatch.append(d_fc)
+                # print('i = ', i)
+                # print('length of cache_bn = ', len(cache_bn))
+                d_fc, dgamma, dbeta = batchnorm_backward(
+                    d_fc, cache=cache_bn[i])
+                grads['gamma' + str(i)] = dgamma
+                grads['beta' + str(i)] = dbeta
+                dfc.append(d_fc)
+            else:
+                dfc.append(d_fc)
+
             dx, dw, db = affine_backward(
                 dfc[-1], cache_fc[i])
             drelu.append(dx)
