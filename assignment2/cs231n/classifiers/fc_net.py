@@ -24,12 +24,7 @@ class TwoLayerNet(object):
     """
 
     def __init__(
-        self,
-        input_dim=3 * 32 * 32,
-        hidden_dim=100,
-        num_classes=10,
-        weight_scale=1e-3,
-        reg=0.0,
+        self, input_dim=3 * 32 * 32, hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
     ):
         """
         Initialize a new network.
@@ -45,13 +40,11 @@ class TwoLayerNet(object):
         """
         self.params = {}
         self.reg = reg
-        W1 = np.random.normal(
-            loc=0, scale=weight_scale, size=(input_dim, hidden_dim)
-        )  # (input_dim, hidden_dim)
+        W1 = np.random.normal(loc=0, scale=weight_scale, size=(
+            input_dim, hidden_dim))  # (input_dim, hidden_dim)
         b1 = np.zeros(shape=hidden_dim)
-        W2 = np.random.normal(
-            loc=0, scale=weight_scale, size=(hidden_dim, num_classes)
-        )  # (hidden_dim, num_classes)
+        W2 = np.random.normal(loc=0, scale=weight_scale, size=(
+            hidden_dim, num_classes))  # (hidden_dim, num_classes)
         b2 = np.zeros(shape=num_classes)
 
         self.params["W1"] = W1
@@ -99,6 +92,7 @@ class TwoLayerNet(object):
         relu_1, cache_relu_1 = relu_forward(fc_1)  # (N, H)
         fc_2, cache_fc_2 = affine_forward(relu_1, W2, b2)  # (N, C)
         import copy
+
         scores = copy.deepcopy(fc_2)
 
         ############################################################################
@@ -121,17 +115,17 @@ class TwoLayerNet(object):
         d_fc_1 = relu_backward(d_relu_1, cache_relu_1)
         dx, d_W1, d_b1 = affine_backward(d_fc_1, cache_fc_1)
 
-        grads['W1'] = d_W1
-        grads['W2'] = d_W2
-        grads['b1'] = d_b1
-        grads['b2'] = d_b2
+        grads["W1"] = d_W1
+        grads["W2"] = d_W2
+        grads["b1"] = d_b1
+        grads["b2"] = d_b2
 
         loss += 0.5 * self.reg * \
-            (np.sum(np.square(self.params['W1'])) +
-             np.sum(np.square(self.params['W2'])))
+            (np.sum(np.square(self.params["W1"])) +
+             np.sum(np.square(self.params["W2"])))
 
-        grads['W2'] += self.reg * self.params['W2']
-        grads['W1'] += self.reg * self.params['W1']
+        grads["W2"] += self.reg * self.params["W2"]
+        grads["W1"] += self.reg * self.params["W1"]
         ############################################################################
         # TODO: Implement the backward pass for the two-layer net. Store the loss  #
         # in the loss variable and gradients in the grads dictionary. Compute data #
@@ -208,23 +202,23 @@ class FullyConnectedNet(object):
         # weight and bias initialization
         for i in range(1, self.num_layers):  # 1 , L-1
             if i == 1:
-                W = np.random.normal(loc=0, scale=weight_scale,
-                                     size=(input_dim, hidden_dims[i-1]))
+                W = np.random.normal(loc=0, scale=weight_scale, size=(
+                    input_dim, hidden_dims[i - 1]))
             else:
                 W = np.random.normal(loc=0, scale=weight_scale, size=(
-                    hidden_dims[i-2], hidden_dims[i-1]))
-            b = np.zeros(shape=hidden_dims[i-1])
+                    hidden_dims[i - 2], hidden_dims[i - 1]))
+            b = np.zeros(shape=hidden_dims[i - 1])
             # for batch norm
             if self.use_batchnorm:
-                self.params['gamma' + str(i)] = np.float64(1)
-                self.params['beta' + str(i)] = np.float64(0)
-            self.params['W' + str(i)] = W
-            self.params['b' + str(i)] = b
+                self.params["gamma" + str(i)] = np.float64(1)
+                self.params["beta" + str(i)] = np.float64(0)
+            self.params["W" + str(i)] = W
+            self.params["b" + str(i)] = b
 
-        self.params['W' + str(self.num_layers)] = np.random.normal(
-            loc=0, scale=weight_scale, size=(hidden_dims[self.num_layers-2], num_classes))
-        self.params['b' + str(self.num_layers)
-                    ] = np.zeros(shape=num_classes)
+        self.params["W" + str(self.num_layers)] = np.random.normal(
+            loc=0, scale=weight_scale, size=(hidden_dims[self.num_layers - 2], num_classes)
+        )
+        self.params["b" + str(self.num_layers)] = np.zeros(shape=num_classes)
 
         ############################################################################
         # TODO: Initialize the parameters of the network, storing all values in    #
@@ -283,39 +277,48 @@ class FullyConnectedNet(object):
             for bn_param in self.bn_params:
                 bn_param["mode"] = mode
 
-        '''
+        """
         loss 과정에서 활용할 리스트들
         [i] : i번째 layer의 변수들
-        '''
+        """
         fc = []
         relu = []
         bn = []
+        dropout = []
         cache_bn = []
         cache_fc = []
         cache_relu = []
+        cache_dropout = []
         fc.append(0)
+        bn.append(0)
         relu.append(X)
+        dropout.append(0)
         cache_bn.append(0)
+        cache_dropout.append(0)
         cache_fc.append(0)
         cache_relu.append(0)
         # 맨 처음 trian data X를 집어넣어준다
         # 0으로 모든 리스트를 초기화해준다
         # 이러한 작업을 해주는 이유 : 인덱스를 1부터 L-1까지 활용하기 위함
 
-        '''
+        """
         fc_i : i번째 layer의 output
         cache_fc_i : i번째 layer의 input
-        '''
+        """
         for i in range(1, self.num_layers):  # 1부터 L-1까지
             # affine
             fc_i, cache_fc_i = affine_forward(
-                relu[i-1], self.params['W' + str(i)], self.params['b' + str(i)])
+                relu[i - 1], self.params["W" + str(i)], self.params["b" + str(i)])
             fc.append(fc_i)
             cache_fc.append(cache_fc_i)
             if self.use_batchnorm:
                 # batchnorm
-                bn_i, cache_bn_i = batchnorm_forward(fc_i, gamma=self.params['gamma'+str(
-                    i)], beta=self.params['beta' + str(i)], bn_param=self.bn_params[i-1])
+                bn_i, cache_bn_i = batchnorm_forward(
+                    fc_i,
+                    gamma=self.params["gamma" + str(i)],
+                    beta=self.params["beta" + str(i)],
+                    bn_param=self.bn_params[i - 1],
+                )
                 bn.append(bn_i)
                 cache_bn.append(cache_bn_i)
                 # relu
@@ -328,9 +331,18 @@ class FullyConnectedNet(object):
                 relu.append(relu_i)
                 cache_relu.append(cache_relu_i)
 
+            # dropout layer
+            if self.use_dropout:
+                dropout_i, cache_dropout_i = dropout_forward(
+                    relu_i, dropout_param=self.dropout_param)
+                dropout.append(dropout_i)
+                cache_dropout.append(cache_dropout_i)
+
         # 마지막 L번째 layer : affine & softmax
         fc_L, cache_fc_L = affine_forward(
-            relu[-1], self.params['W'+str(self.num_layers)], self.params['b'+str(self.num_layers)])
+            dropout[-1] if self.use_dropout else relu[-1], self.params["W" + str(
+                self.num_layers)], self.params["b" + str(self.num_layers)]
+        )
         fc.append(fc_L)
         cache_fc.append(cache_fc_L)
 
@@ -358,24 +370,33 @@ class FullyConnectedNet(object):
         if mode == "test":
             return scores
 
-        loss, grads = 0.0,  {}
+        loss, grads = 0.0, {}
         loss, d_scores = softmax_loss(scores, y)
 
+        dx_ = []
         dfc = []
         drelu = []
         dbatch = []
+        ddropout = []
 
         # 맨 마지막 Layer
         drelu_L, dWL, dbL = affine_backward(
             d_scores, cache_fc[self.num_layers])
         dfc.append(d_scores)
-        drelu.append(drelu_L)
-        grads['W' + str(self.num_layers)] = dWL
-        grads['b' + str(self.num_layers)] = dbL
+        dx_.append(drelu_L)
+        grads["W" + str(self.num_layers)] = dWL
+        grads["b" + str(self.num_layers)] = dbL
 
-        for i in range(self.num_layers-1, 0, -1):  # N-1, 1
+        for i in range(self.num_layers - 1, 0, -1):  # N-1, 1 : all hidden layer
+            # dropout backward
+            if self.use_dropout:
+                ddropout_i = dropout_backward(dx_[-1], cache_dropout[i])
+                ddropout.append(ddropout_i)
+
             # relu backward
-            d_fc = relu_backward(drelu[-1], cache_relu[i])
+            d_fc = relu_backward(
+                ddropout[-1] if self.use_dropout else dx_[-1], cache_relu[i])
+
             # batch normalization
             if self.use_batchnorm:
                 # vriable name = d_fc이지만 사실은 d_batch
@@ -383,19 +404,20 @@ class FullyConnectedNet(object):
                 # print('i = ', i)
                 # print('length of cache_bn = ', len(cache_bn))
                 d_fc, dgamma, dbeta = batchnorm_backward(
-                    d_fc, cache=cache_bn[i])
-                grads['gamma' + str(i)] = dgamma
-                grads['beta' + str(i)] = dbeta
+                    dbatch[-1], cache=cache_bn[i])
+                grads["gamma" + str(i)] = dgamma
+                grads["beta" + str(i)] = dbeta
                 dfc.append(d_fc)
             else:
                 dfc.append(d_fc)
 
-            dx, dw, db = affine_backward(
-                dfc[-1], cache_fc[i])
-            drelu.append(dx)
-            grads['W' + str(i)] = dw
-            grads['b' + str(i)] = db
-            # print('db = ', db)
+            # affine backward
+            dx, dw, db = affine_backward(dfc[-1], cache_fc[i])
+            dx_.append(dx)
+            grads["W" + str(i)] = dw
+            grads["b" + str(i)] = db
+            # if (i == 1):
+            # print(i)
 
         ############################################################################
         # TODO: Implement the backward pass for the fully-connected net. Store the #
